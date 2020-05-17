@@ -8,6 +8,6 @@
 //!     assert_eq!(store.get("key".to_owned()), Some("value".to_owned()));
 //! }
 //!
-pub use kv::KvStore;
+pub use kv::{KvStore, Result};
 
 mod kv;
