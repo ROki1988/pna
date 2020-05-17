@@ -20,7 +20,7 @@ impl KvStore {
     }
 
     /// Remove key-value
-    pub fn remove(&mut self, key: String)  {
+    pub fn remove(&mut self, key: String) {
         self.0.remove(&key);
     }
 }

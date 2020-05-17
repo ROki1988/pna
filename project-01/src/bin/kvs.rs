@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, crate_name, crate_description, App, Arg, SubCommand};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg, SubCommand};
 use std::process::exit;
 
 fn main() {
