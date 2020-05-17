@@ -1,5 +1,5 @@
 [package]
-name = "project-01"
+name = "kvs"
 version = "0.1.0"
 authors = ["ROki1988 <roki.swindler@gmail.com>"]
 edition = "2018"
