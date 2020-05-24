@@ -10,4 +10,5 @@
 //!
 pub use kv::{KvStore, Result};
 
+mod error;
 mod kv;
