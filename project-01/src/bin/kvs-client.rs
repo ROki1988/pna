@@ -62,7 +62,7 @@ fn main() -> Result<()> {
         // use crate_version! to pull the version number
         .version(crate_version!())
         .author(crate_authors!())
-        .subcommands(vec![set, get, rm, slink])
+        .subcommands(vec![set, get, rm])
         .get_matches();
 
     let mut store = KvStore::open("./")?;
