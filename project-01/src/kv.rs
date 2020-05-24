@@ -170,7 +170,7 @@ impl KvStore {
         std::fs::copy(file_path.as_path(), self.path.as_path())?;
         std::fs::remove_file(file_path.as_path())?;
 
-        self.len = len;
+        self.len = len - 1;
         Ok(())
     }
 }
