@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::io::{BufRead, BufReader, BufWriter};
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 const FILE_NAME: &str = "kvs.store";
 const SLINK_EXT: &str = "slink";
@@ -101,8 +101,7 @@ impl KvStore {
     pub fn set(&mut self, key: String, value: String) -> Result<()> {
         let command = Command::Set((key.clone(), value));
         let s: String = serde_json::to_string(&command)?;
-        self.file
-            .write_fmt(format_args!("{}\n", s))?;
+        self.file.write_fmt(format_args!("{}\n", s))?;
         self.len += 1;
         self.index.insert(key, self.len - 1);
 
@@ -116,8 +115,7 @@ impl KvStore {
             .ok_or_else(|| KvsError::from(KvsErrorKind::KeyNotFound))?;
         let command = Command::Rm(key.clone());
         let s: String = serde_json::to_string(&command)?;
-        self.file
-            .write_fmt(format_args!("{}\n", s))?;
+        self.file.write_fmt(format_args!("{}\n", s))?;
         self.len += 1;
         self.index.remove(key.as_str());
         Ok(())

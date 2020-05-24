@@ -16,13 +16,31 @@ fn main() -> Result<()> {
                 .value_name("VALUE")
                 .required(true)
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("addr")
+                .long("addr")
+                .default_value("127.0.0.1:4000")
+                .value_name("IP-PORT")
+                .required(false)
+                .takes_value(true),
         );
-    let get = SubCommand::with_name("get").about("get value by key").arg(
-        Arg::with_name("key")
-            .value_name("KEY")
-            .required(true)
-            .takes_value(true),
-    );
+    let get = SubCommand::with_name("get")
+        .about("get value by key")
+        .arg(
+            Arg::with_name("key")
+                .value_name("KEY")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("addr")
+                .long("addr")
+                .default_value("127.0.0.1:4000")
+                .value_name("IP-PORT")
+                .required(false)
+                .takes_value(true),
+        );
     let rm = SubCommand::with_name("rm")
         .about("remove value by key")
         .arg(
@@ -30,8 +48,15 @@ fn main() -> Result<()> {
                 .value_name("KEY")
                 .required(true)
                 .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("addr")
+                .long("addr")
+                .default_value("127.0.0.1:4000")
+                .value_name("IP-PORT")
+                .required(false)
+                .takes_value(true),
         );
-    let slink = SubCommand::with_name("slink").about("slink log file");
     let matches = App::new(crate_name!())
         .about(crate_description!())
         // use crate_version! to pull the version number
@@ -63,7 +88,6 @@ fn main() -> Result<()> {
                 }
                 e
             }),
-        ("slink", _) => store.slink(),
         _ => unreachable!(),
     }
 }
