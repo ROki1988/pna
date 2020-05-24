@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use kvs::{KvStore, Result};
 use std::process::exit;
 
@@ -57,8 +57,8 @@ fn main() -> Result<()> {
                 .required(false)
                 .takes_value(true),
         );
-    let matches = App::new(crate_name!())
-        .about(crate_description!())
+    let matches = App::new("kvs-client")
+        .about("communicate kvs-server")
         // use crate_version! to pull the version number
         .version(crate_version!())
         .author(crate_authors!())
