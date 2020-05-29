@@ -12,7 +12,7 @@ const SLINK_EXT: &str = "slink";
 /// key value store
 pub struct KvStore {
     path: PathBuf,
-    len: usize,
+    next_pos: usize,
     file: File,
     index: HashMap<String, usize>,
 }
@@ -47,7 +47,7 @@ impl KvStore {
                 .collect::<Result<Vec<Command>>>()?;
             let s = Self {
                 path: p,
-                len: log.len(),
+                next_pos: log.len(),
                 file,
                 index: Self::build_index(log.iter()),
             };
@@ -102,8 +102,8 @@ impl KvStore {
         let command = Command::Set((key.clone(), value));
         let s: String = serde_json::to_string(&command)?;
         self.file.write_fmt(format_args!("{}\n", s))?;
-        self.len += 1;
-        self.index.insert(key, self.len - 1);
+        self.index.insert(key, self.next_pos);
+        self.next_pos += 1;
 
         Ok(())
     }
@@ -116,8 +116,8 @@ impl KvStore {
         let command = Command::Rm(key.clone());
         let s: String = serde_json::to_string(&command)?;
         self.file.write_fmt(format_args!("{}\n", s))?;
-        self.len += 1;
         self.index.remove(key.as_str());
+        self.next_pos += 1;
         Ok(())
     }
 
@@ -168,7 +168,7 @@ impl KvStore {
         std::fs::copy(file_path.as_path(), self.path.as_path())?;
         std::fs::remove_file(file_path.as_path())?;
 
-        self.len = len;
+        self.next_pos = len;
         Ok(())
     }
 }

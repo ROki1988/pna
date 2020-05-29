@@ -1,6 +1,7 @@
-use clap::{crate_authors, crate_version, App, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, SubCommand, value_t_or_exit};
 use kvs::{KvStore, Result};
 use std::process::exit;
+use std::net::SocketAddr;
 
 fn main() -> Result<()> {
     let set = SubCommand::with_name("set")
@@ -67,11 +68,15 @@ fn main() -> Result<()> {
 
     let mut store = KvStore::open("./")?;
     match matches.subcommand() {
-        ("set", Some(s)) => store.set(
-            s.value_of("key").unwrap().to_string(),
-            s.value_of("value").unwrap().to_string(),
-        ),
+        ("set", Some(s)) => {
+            let addr = value_t_or_exit!(matches, "addr", SocketAddr);
+            store.set(
+                s.value_of("key").unwrap().to_string(),
+                s.value_of("value").unwrap().to_string(),
+            )
+        },
         ("get", Some(g)) => {
+            let addr = value_t_or_exit!(matches, "addr", SocketAddr);
             if let Some(v) = store.get(g.value_of("key").unwrap().to_string())? {
                 println!("{}", v);
             } else {
@@ -79,15 +84,18 @@ fn main() -> Result<()> {
             }
             Ok(())
         }
-        ("rm", Some(r)) => store
-            .remove(r.value_of("key").unwrap().to_string())
-            .map_err(|e| {
-                if e.is_invalid_argument() {
-                    println!("Key not found");
-                    exit(1);
-                }
-                e
-            }),
+        ("rm", Some(r)) => {
+            let addr = value_t_or_exit!(matches, "addr", SocketAddr);
+            store
+                .remove(r.value_of("key").unwrap().to_string())
+                .map_err(|e| {
+                    if e.is_invalid_argument() {
+                        println!("Key not found");
+                        exit(1);
+                    }
+                    e
+                })
+        },
         _ => unreachable!(),
     }
 }
