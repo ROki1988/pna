@@ -11,10 +11,10 @@ const SLINK_EXT: &str = "slink";
 
 /// key value store
 pub struct KvStore {
-    path: PathBuf,
-    next_pos: usize,
-    file: File,
-    index: HashMap<String, usize>,
+    pub(crate) path: PathBuf,
+    pub(crate) next_pos: usize,
+    pub(crate) file: File,
+    pub(crate) index: HashMap<String, usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,7 +28,7 @@ pub type Result<T> = std::result::Result<T, KvsError>;
 
 impl KvStore {
     /// Return new store
-    pub fn open(path: impl Into<PathBuf>) -> Result<KvStore> {
+    pub fn open(path: impl Into<PathBuf>) -> Result<Self> {
         let mut p: PathBuf = path.into();
         p.push(FILE_NAME);
         let path = p.as_path();
@@ -77,48 +77,6 @@ impl KvStore {
             }
             acc
         })
-    }
-
-    /// Get value by key
-    pub fn get(&self, key: String) -> Result<Option<String>> {
-        if let Some(&i) = self.index.get(key.as_str()) {
-            let reader = BufReader::new(File::open(self.path.as_path())?);
-            let s = reader
-                .lines()
-                .nth(i)
-                .ok_or_else(|| KvsError::from(KvsErrorKind::Index))?;
-            let command: Command = serde_json::from_str(s?.as_str())?;
-            match command {
-                Command::Set(s) => Ok(Some(s.1)),
-                _ => Ok(None),
-            }
-        } else {
-            Ok(None)
-        }
-    }
-
-    /// Set value with key
-    pub fn set(&mut self, key: String, value: String) -> Result<()> {
-        let command = Command::Set((key.clone(), value));
-        let s: String = serde_json::to_string(&command)?;
-        self.file.write_fmt(format_args!("{}\n", s))?;
-        self.index.insert(key, self.next_pos);
-        self.next_pos += 1;
-
-        Ok(())
-    }
-
-    /// Remove key-value
-    pub fn remove(&mut self, key: String) -> Result<()> {
-        let _v = self
-            .get(key.clone())?
-            .ok_or_else(|| KvsError::from(KvsErrorKind::KeyNotFound))?;
-        let command = Command::Rm(key.clone());
-        let s: String = serde_json::to_string(&command)?;
-        self.file.write_fmt(format_args!("{}\n", s))?;
-        self.index.remove(key.as_str());
-        self.next_pos += 1;
-        Ok(())
     }
 
     fn temp_file_name_for_slink(&self) -> PathBuf {

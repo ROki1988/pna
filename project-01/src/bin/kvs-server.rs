@@ -1,14 +1,12 @@
-use clap::{crate_authors, arg_enum, crate_version, App, Arg, value_t_or_exit};
-use kvs::{Result};
-use std::net::SocketAddr;
+use clap::{arg_enum, crate_authors, crate_version, value_t_or_exit, App, Arg};
+use kvs::{KvStore, KvsServer, Result, SledKvsEngine};
 use slog::*;
-use std::thread::sleep;
-use failure::_core::time::Duration;
+use std::net::SocketAddr;
 
 arg_enum! {
     #[allow(non_camel_case_types)]
     #[derive(PartialEq, Debug)]
-    pub enum KvsEngine {
+    pub enum KvsEngineType {
         kvs,
         sled,
     }
@@ -30,7 +28,7 @@ fn main() -> Result<()> {
         .arg(
             Arg::with_name("engine")
                 .long("engine")
-                .possible_values(&KvsEngine::variants())
+                .possible_values(&KvsEngineType::variants())
                 .case_insensitive(true)
                 .default_value("kvs")
                 .value_name("ENGINE-NAME")
@@ -40,15 +38,24 @@ fn main() -> Result<()> {
         .get_matches();
 
     let addr = value_t_or_exit!(matches, "addr", SocketAddr);
-    let engine = value_t_or_exit!(matches, "engine", KvsEngine);
+    let engine_type = value_t_or_exit!(matches, "engine", KvsEngineType);
 
-    let decorator = slog_term::PlainDecorator::new(std::io::stderr());
-    let drain = slog_term::CompactFormat::new(decorator).build().fuse();
-    let drain = slog_async::Async::new(drain).build().fuse();
+    let json = slog_json::Json::default(std::io::stderr()).fuse();
+    let drain = slog_async::Async::new(json).build().fuse();
 
     let root = slog::Logger::root(drain, o!("version" => crate_version!()));
-    let server = root.new(o!("addr" => addr, "engine" => engine.to_string()));
-    info!(server, "starting");
-    sleep(Duration::from_secs(2));
+
+    info!(root, "config" ; "addr" => addr, "engine" => engine_type.to_string());
+
+    info!(root, "starting");
+
+    let server = root.clone();
+
+    match engine_type {
+        KvsEngineType::sled => KvsServer::new(SledKvsEngine::open("./")?).run(addr, server)?,
+        KvsEngineType::kvs => KvsServer::new(KvStore::open("./")?).run(addr, server)?,
+    }
+
+    info!(root, "stopping");
     Ok(())
 }
