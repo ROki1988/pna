@@ -1,8 +1,8 @@
+use crate::error::{KvsError, KvsErrorKind};
 use crate::{KvsEngine, Result};
 use bstr::ByteSlice;
 use sled;
 use std::path::PathBuf;
-use crate::error::{KvsError, KvsErrorKind};
 
 /// Key value store by sled
 pub struct SledKvsEngine(sled::Db);
@@ -19,10 +19,15 @@ impl SledKvsEngine {
     }
 }
 
+impl Drop for SledKvsEngine {
+    fn drop(&mut self) {
+        self.0.flush().unwrap();
+    }
+}
+
 impl KvsEngine for SledKvsEngine {
     fn set(&mut self, key: String, value: String) -> Result<()> {
         self.0.insert(key.as_bytes(), value.as_bytes())?;
-        self.0.flush()?;
         Ok(())
     }
 
@@ -35,10 +40,9 @@ impl KvsEngine for SledKvsEngine {
 
     fn remove(&mut self, key: String) -> Result<()> {
         if !self.0.contains_key(key.as_str())? {
-            return Err(KvsError::from(KvsErrorKind::KeyNotFound))
+            return Err(KvsError::from(KvsErrorKind::KeyNotFound));
         }
         self.0.remove(key)?;
-        self.0.flush()?;
         Ok(())
     }
 }
