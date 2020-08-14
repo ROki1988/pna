@@ -1,4 +1,5 @@
 use failure::{Backtrace, Context, Fail};
+use rayon::ThreadPoolBuildError;
 use std::fmt;
 use std::fmt::Display;
 use strum::ParseError;
@@ -27,6 +28,8 @@ pub enum KvsErrorKind {
     Encoding,
     #[fail(display = "Parse")]
     Parse,
+    #[fail(display = "Concurrent")]
+    Concurrent,
 }
 
 #[derive(Debug)]
@@ -103,6 +106,14 @@ impl From<strum::ParseError> for KvsError {
     fn from(error: ParseError) -> Self {
         Self {
             inner: error.context(KvsErrorKind::Parse),
+        }
+    }
+}
+
+impl From<ThreadPoolBuildError> for KvsError {
+    fn from(error: ThreadPoolBuildError) -> Self {
+        Self {
+            inner: error.context(KvsErrorKind::Concurrent),
         }
     }
 }

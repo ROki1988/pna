@@ -5,16 +5,18 @@ use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::io::{BufRead, BufReader, BufWriter};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, RwLock};
 
 const FILE_NAME: &str = "kvs.store";
 const SLINK_EXT: &str = "slink";
 
 /// key value store
+#[derive(Clone)]
 pub struct KvStore {
-    pub(crate) path: PathBuf,
-    pub(crate) next_pos: usize,
-    pub(crate) file: File,
-    pub(crate) index: HashMap<String, usize>,
+    pub(crate) path: Arc<PathBuf>,
+    pub(crate) next_pos: Arc<RwLock<usize>>,
+    pub(crate) writer: Arc<Mutex<BufWriter<File>>>,
+    pub(crate) index: Arc<RwLock<HashMap<String, usize>>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -31,13 +33,13 @@ impl KvStore {
     pub fn open(path: impl Into<PathBuf>) -> Result<Self> {
         let mut p: PathBuf = path.into();
         p.push(FILE_NAME);
-        let path = p.as_path();
+        let file_path = p.as_path();
 
-        if path.exists() & !path.is_file() {
+        if file_path.exists() & !file_path.is_file() {
             Err(KvsError::from(KvsErrorKind::IO))
         } else {
-            let file = Self::open_store_file_append_mode(path)?;
-            let log = BufReader::new(File::open(path)?)
+            let file = Self::open_store_file_append_mode(file_path)?;
+            let log = BufReader::new(File::open(file_path)?)
                 .lines()
                 .map(|x| {
                     x.map_err::<KvsError, _>(Into::into).and_then(|x| {
@@ -46,10 +48,10 @@ impl KvStore {
                 })
                 .collect::<Result<Vec<Command>>>()?;
             let s = Self {
-                path: p,
-                next_pos: log.len(),
-                file,
-                index: Self::build_index(log.iter()),
+                path: Arc::new(p),
+                next_pos: Arc::new(RwLock::new(log.len())),
+                writer: Arc::new(Mutex::new(BufWriter::new(file))),
+                index: Arc::new(RwLock::new(Self::build_index(log.iter()))),
             };
             Ok(s)
         }
@@ -80,7 +82,7 @@ impl KvStore {
     }
 
     fn temp_file_name_for_slink(&self) -> PathBuf {
-        let mut temp = self.path.clone();
+        let mut temp = (*self.path).clone();
         temp.set_extension(SLINK_EXT);
         temp
     }
@@ -94,10 +96,8 @@ impl KvStore {
             .map_err::<KvsError, _>(Into::into)
     }
 
-    fn ref_numbers_by_index(&self) -> Vec<&usize> {
-        let mut indies: Vec<&usize> = self.index.values().collect();
-        indies.sort();
-        indies
+    fn ref_numbers_by_index(&self) -> Vec<usize> {
+        self.index.read().unwrap().values().map(|&x| x).collect()
     }
 
     fn create_slink_file(&self) -> Result<usize> {
@@ -107,7 +107,7 @@ impl KvStore {
         let indies = self.ref_numbers_by_index();
         let len = indies.len();
 
-        for &number in indies {
+        for number in indies {
             let l = reader
                 .nth(number)
                 .ok_or_else(|| KvsError::from(KvsErrorKind::Index))?;
@@ -126,7 +126,7 @@ impl KvStore {
         std::fs::copy(file_path.as_path(), self.path.as_path())?;
         std::fs::remove_file(file_path.as_path())?;
 
-        self.next_pos = len;
+        *self.next_pos.write().unwrap() = len;
         Ok(())
     }
 }

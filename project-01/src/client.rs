@@ -2,7 +2,7 @@ use crate::command::{Request, Response};
 use crate::error::{KvsError, KvsErrorKind};
 use crate::Result;
 use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::str::FromStr;
 
 /// Key value store client
@@ -67,5 +67,11 @@ impl KvsClient {
             }
             other => Ok(other),
         })
+    }
+
+    /// shutdown tcp connection
+    pub fn close(self) -> Result<()> {
+        self.reader.into_inner().shutdown(Shutdown::Both)?;
+        Ok(())
     }
 }

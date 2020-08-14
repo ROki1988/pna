@@ -1,13 +1,13 @@
 use crate::Result;
 
 /// Key Value store trait
-pub trait KvsEngine {
+pub trait KvsEngine: Clone + Send + 'static {
     /// Set value with key
-    fn set(&mut self, key: String, value: String) -> Result<()>;
+    fn set(&self, key: String, value: String) -> Result<()>;
     /// Get value by key
-    fn get(&mut self, key: String) -> Result<Option<String>>;
+    fn get(&self, key: String) -> Result<Option<String>>;
     /// Remove key-value
-    fn remove(&mut self, key: String) -> Result<()>;
+    fn remove(&self, key: String) -> Result<()>;
 }
 pub use crate::engine::sled::SledKvsEngine;
 

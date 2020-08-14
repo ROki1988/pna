@@ -1,7 +1,11 @@
 use clap::{arg_enum, crate_authors, crate_version, value_t_or_exit, App, Arg};
+use kvs::thread_pool::ThreadPool;
 use kvs::{KvStore, KvsServer, Result, SledKvsEngine};
 use slog::*;
 use std::net::SocketAddr;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
 
 arg_enum! {
     #[allow(non_camel_case_types)]
@@ -13,6 +17,10 @@ arg_enum! {
 }
 
 fn main() -> Result<()> {
+    run()
+}
+
+fn run() -> Result<()> {
     let matches = App::new("kvs-server")
         .about("store key value")
         .version(crate_version!())
@@ -51,11 +59,24 @@ fn main() -> Result<()> {
 
     let server = root.clone();
 
-    match engine_type {
-        KvsEngineType::sled => KvsServer::new(SledKvsEngine::open("./")?).run(addr, server)?,
-        KvsEngineType::kvs => KvsServer::new(KvStore::open("./")?).run(addr, server)?,
-    }
+    let pool = kvs::thread_pool::SharedQueueThreadPool::new(4).unwrap();
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::Relaxed);
+    })
+        .expect("Error setting Ctrl-C handler");
+    let s = match engine_type {
+        KvsEngineType::sled => {
+            KvsServer::new(SledKvsEngine::open("./")?, pool).run(addr, server)?
+        }
+        KvsEngineType::kvs => KvsServer::new(KvStore::open("./")?, pool).run(addr, server)?,
+    };
+    while running.load(Ordering::Relaxed) {}
+    info!(root, "stopping server...");
+    s.do_shutdown().unwrap();
+    info!(root, "stopped");
+    std::thread::sleep(Duration::from_millis(1000));
 
-    info!(root, "stopping");
     Ok(())
 }

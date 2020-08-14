@@ -5,6 +5,7 @@ use sled;
 use std::path::PathBuf;
 
 /// Key value store by sled
+#[derive(Clone)]
 pub struct SledKvsEngine(sled::Db);
 
 const FILE_NAME: &str = "sled.store";
@@ -26,19 +27,19 @@ impl Drop for SledKvsEngine {
 }
 
 impl KvsEngine for SledKvsEngine {
-    fn set(&mut self, key: String, value: String) -> Result<()> {
+    fn set(&self, key: String, value: String) -> Result<()> {
         self.0.insert(key.as_bytes(), value.as_bytes())?;
         Ok(())
     }
 
-    fn get(&mut self, key: String) -> Result<Option<String>> {
+    fn get(&self, key: String) -> Result<Option<String>> {
         self.0
             .get(key)?
             .map(|x| x.to_str().map_err(Into::into).map(str::to_string))
             .transpose()
     }
 
-    fn remove(&mut self, key: String) -> Result<()> {
+    fn remove(&self, key: String) -> Result<()> {
         if !self.0.contains_key(key.as_str())? {
             return Err(KvsError::from(KvsErrorKind::KeyNotFound));
         }

@@ -153,7 +153,7 @@ fn server_cli_version() {
 
 #[test]
 fn cli_log_configuration() {
-    let temp_dir = TempDir::new_in("./").unwrap();
+    let temp_dir = TempDir::new().unwrap();
     let stderr_path = temp_dir.path().join("stderr");
     let mut cmd = Command::cargo_bin("kvs-server").unwrap();
     let mut child = cmd
